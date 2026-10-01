@@ -1,0 +1,9 @@
+[project]
+name = "nairobytes-dark-factory"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "band-sdk[opencode]>=3.2.1",
+]
