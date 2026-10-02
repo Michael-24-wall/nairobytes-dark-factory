@@ -1,12 +1,13 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
 
 export async function apiRequest(path, options = {}) {
+  const { includeStatus, ...requestOptions } = options
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), options.timeout || 10000)
+  const timeout = window.setTimeout(() => controller.abort(), requestOptions.timeout || 10000)
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...requestOptions,
+      headers: { 'Content-Type': 'application/json', ...(requestOptions.headers || {}) },
       signal: controller.signal,
     })
     const body = await response.json().catch(() => ({}))
@@ -16,7 +17,7 @@ export async function apiRequest(path, options = {}) {
       error.code = body.error
       throw error
     }
-    return body
+    return includeStatus ? { data: body, status: response.status } : body
   } finally {
     window.clearTimeout(timeout)
   }
