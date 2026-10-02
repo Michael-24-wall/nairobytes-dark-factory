@@ -1,2 +1,8 @@
 .env
 agent_config.yaml
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+agent.py.bak
+opencode.json.bak
