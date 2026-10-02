@@ -88,6 +88,14 @@ Health and evidence:
 - PostgreSQL was shown as `UNKNOWN` because the backend exposes no database health endpoint.
 - Evidence Center loaded the repository evidence manifest and rendered the real document contents.
 
+Project-generation vertical slice:
+
+- `/projects` loaded with the real project list route and a Create Project action.
+- `/projects/new` created a real project record and isolated workspace through the browser.
+- The wizard stored requirements and design instructions; `/projects/:id` read them back from FastAPI.
+- Project detail displayed a real workspace path and `READY` workspace status.
+- Backend multipart asset upload is independently covered by `tests/test_projects.py`; the browser runner's first upload attempt overlapped a timed-out prior click, so no browser asset-upload result is claimed here.
+
 ## Expected network events
 
 The browser console recorded HTTP 409 network entries during the intentional overlap/conflict demonstration. The UI caught and rendered these responses as user-facing conflict states; no uncaught application error occurred.

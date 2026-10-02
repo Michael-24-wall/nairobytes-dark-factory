@@ -9,6 +9,8 @@ Nairobytes Dark Factory is presented as a general-purpose AI software engineerin
 - Product landing page at `/` with the factory message and proof chain.
 - Dashboard at `/dashboard` using recorded factory evidence.
 - Projects catalog at `/projects` separating verified and future tracks.
+- Project creation at `/projects/new` with persisted requirements, design tokens, isolated workspace metadata, and backend asset upload support.
+- Project detail at `/projects/:id` with real requirements, design, assets, workspace, and integration boundary state.
 - Reservation product at `/reservations` with live creation, retrieval, provisioning, and conflict handling.
 - Factory pipeline at `/factory` and recorded agent view at `/agents`.
 - Dedicated live Idempotency, Timezone, and Concurrency Attack labs.
@@ -26,13 +28,15 @@ Nairobytes Dark Factory is presented as a general-purpose AI software engineerin
 
 ## Backend impact
 
-The only backend modification is CORS for the two local Vite origins and existing GET/POST methods. Reservation logic, PostgreSQL schema, concurrency protection, idempotency behavior, timezone handling, and tests remain unchanged.
+Backend changes add the project/design/workspace/asset schema and routes plus CORS for the two local Vite origins and existing GET/POST/PUT methods. Reservation logic, PostgreSQL reservation invariants, concurrency protection, idempotency behavior, and timezone handling remain unchanged.
 
 ## Validation status
 
 ```text
 Frontend production build: PASS
 Backend regression: 46 passed, 1 warning
+Full backend regression after project slice: 50 passed, 1 warning
+Project API tests: 4 passed
 Browser route sweep: 13 routes rendered
 Live reservation create/retrieve: PASS
 Live overlap conflict: PASS
@@ -46,6 +50,7 @@ Mobile viewport check: 390x844, PASS
 
 - PostgreSQL status cannot be independently reported by the frontend because no safe backend health route exists.
 - The backend has no list or delete endpoint, so browser demonstration reservations remain persistent and are clearly labeled.
+- Project creation and detail retrieval were browser-verified; browser asset upload still needs a clean non-overlapping runner pass, while the backend multipart path is covered by automated tests.
 - Live BAND orchestration is unavailable; agent views use recorded evidence.
 - The existing non-failing Starlette `httpx` deprecation warning remains.
 - A dedicated automated frontend test runner was not added; browser validation was performed through the running UI.
