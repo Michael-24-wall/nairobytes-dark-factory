@@ -6,12 +6,20 @@ from datetime import datetime, timezone
 import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from psycopg import errors
 from pydantic import BaseModel, Field
 
 from .db import session
 
 app = FastAPI(title="Restaurant Reservation API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class TableBody(BaseModel):
