@@ -11,6 +11,7 @@ Nairobytes Dark Factory is presented as a general-purpose AI software engineerin
 - Projects catalog at `/projects` separating verified and future tracks.
 - Project creation at `/projects/new` with persisted requirements, design tokens, isolated workspace metadata, and backend asset upload support.
 - Project detail at `/projects/:id` with real requirements, design, assets, workspace, and integration boundary state.
+- Local factory execution from a project detail page with persisted stages, events, tasks, artifacts, generated source files, tests, breaker report, verifier report, Git commit, and approval.
 - Reservation product at `/reservations` with live creation, retrieval, provisioning, and conflict handling.
 - Factory pipeline at `/factory` and recorded agent view at `/agents`.
 - Dedicated live Idempotency, Timezone, and Concurrency Attack labs.
@@ -35,8 +36,10 @@ Backend changes add the project/design/workspace/asset schema and routes plus CO
 ```text
 Frontend production build: PASS
 Backend regression: 46 passed, 1 warning
-Full backend regression after project slice: 50 passed, 1 warning
+Full backend regression after factory orchestrator slice: 52 passed, 1 warning
 Project API tests: 4 passed
+Factory orchestrator tests: 2 passed
+Browser factory run: approved with real commit `05e3a5034edf5ee7aeb908b65b83b961cd171280`
 Browser route sweep: 13 routes rendered
 Live reservation create/retrieve: PASS
 Live overlap conflict: PASS
@@ -51,6 +54,7 @@ Mobile viewport check: 390x844, PASS
 - PostgreSQL status cannot be independently reported by the frontend because no safe backend health route exists.
 - The backend has no list or delete endpoint, so browser demonstration reservations remain persistent and are clearly labeled.
 - Project creation and detail retrieval were browser-verified; browser asset upload still needs a clean non-overlapping runner pass, while the backend multipart path is covered by automated tests.
+- GitHub, pull requests, external authentication, admin authorization, secrets vault, and deployment providers remain not configured.
 - Live BAND orchestration is unavailable; agent views use recorded evidence.
 - The existing non-failing Starlette `httpx` deprecation warning remains.
 - A dedicated automated frontend test runner was not added; browser validation was performed through the running UI.

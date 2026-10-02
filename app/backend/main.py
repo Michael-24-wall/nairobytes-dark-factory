@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from .db import session
 from .projects import router as projects_router
+from .factory_api import router as factory_router
 
 app = FastAPI(title="Restaurant Reservation API")
 app.add_middleware(
@@ -22,6 +23,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 app.include_router(projects_router)
+app.include_router(factory_router)
 
 
 class TableBody(BaseModel):

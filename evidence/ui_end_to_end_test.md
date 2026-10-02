@@ -93,8 +93,18 @@ Project-generation vertical slice:
 - `/projects` loaded with the real project list route and a Create Project action.
 - `/projects/new` created a real project record and isolated workspace through the browser.
 - The wizard stored requirements and design instructions; `/projects/:id` read them back from FastAPI.
-- Project detail displayed a real workspace path and `READY` workspace status.
+- Project detail displayed a project-scoped workspace label and `READY` workspace status without exposing the server's absolute filesystem path.
 - Backend multipart asset upload is independently covered by `tests/test_projects.py`; the browser runner's first upload attempt overlapped a timed-out prior click, so no browser asset-upload result is claimed here.
+
+Factory execution flow:
+
+- Browser-created project: `Factory Browser Run 1790980699207`.
+- Clicked `Run factory`; backend returned a real run ID and the UI polled backend state/events.
+- Observed stages: `planning`, `building`, `testing`, `breaking`, `retesting`, `verifying`, `awaiting_approval`.
+- Observed completed tasks: architect, builder, tester, breaker, retest tester, verifier.
+- Human approval action moved the persisted run to `approved`.
+- Actual Git commit recorded: `05e3a5034edf5ee7aeb908b65b83b961cd171280` on `master`.
+- Deployment remained explicitly `NOT CONFIGURED`.
 
 ## Expected network events
 

@@ -37,10 +37,10 @@ found 0 vulnerabilities
 npm run build
 vite v6.4.3 building for production...
 ✓ 1645 modules transformed.
-✓ built in 5.19s
+✓ built in 7.69s
 
 .venv\Scripts\python.exe -m pytest tests -q
-46 passed, 1 warning in 24.39s
+52 passed, 1 warning in 49.94s
 ```
 
 Browser validation against the running backend and frontend observed:

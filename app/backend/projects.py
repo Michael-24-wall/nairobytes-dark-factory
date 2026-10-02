@@ -86,7 +86,7 @@ def _project_out(project, design, workspace, assets):
         "created_at": _iso(project["created_at"]),
         "updated_at": _iso(project["updated_at"]),
         "design": design_out,
-        "workspace": {"id": str(workspace["id"]), "path": workspace["path"], "status": workspace["status"]} if workspace else None,
+        "workspace": {"id": str(workspace["id"]), "path": f"workspace/{project['id']}", "status": workspace["status"]} if workspace else None,
         "assets": asset_out,
     }
 

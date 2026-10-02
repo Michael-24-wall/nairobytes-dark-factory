@@ -88,3 +88,69 @@ CREATE TABLE IF NOT EXISTS project_assets (
 );
 
 CREATE INDEX IF NOT EXISTS project_assets_project_idx ON project_assets(project_id);
+
+CREATE TABLE IF NOT EXISTS factory_runs (
+  idempotency_key text PRIMARY KEY,
+  id             uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+  project_id     uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  status         text NOT NULL DEFAULT 'queued'
+    CHECK (status IN ('queued', 'planning', 'building', 'testing', 'breaking', 'repairing', 'retesting', 'verifying', 'awaiting_approval', 'approved', 'deploying', 'deployed', 'failed', 'cancelled')),
+  current_stage  text NOT NULL DEFAULT 'queued',
+  error          text NOT NULL DEFAULT '',
+  started_at     timestamptz,
+  completed_at   timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS factory_tasks (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  factory_run_id uuid NOT NULL REFERENCES factory_runs(id) ON DELETE CASCADE,
+  agent_role    text NOT NULL,
+  task_type     text NOT NULL,
+  status        text NOT NULL,
+  input         text NOT NULL DEFAULT '',
+  output        text NOT NULL DEFAULT '',
+  error         text NOT NULL DEFAULT '',
+  started_at    timestamptz NOT NULL DEFAULT now(),
+  completed_at  timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS factory_events (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  factory_run_id uuid NOT NULL REFERENCES factory_runs(id) ON DELETE CASCADE,
+  stage         text NOT NULL,
+  event_type    text NOT NULL,
+  message       text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS factory_artifacts (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  factory_run_id uuid NOT NULL REFERENCES factory_runs(id) ON DELETE CASCADE,
+  artifact_type text NOT NULL,
+  path          text NOT NULL,
+  sha256        text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS git_commits (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id    uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  factory_run_id uuid NOT NULL REFERENCES factory_runs(id) ON DELETE CASCADE,
+  commit_hash   text NOT NULL,
+  branch        text NOT NULL,
+  message       text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS approvals (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id    uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  factory_run_id uuid NOT NULL REFERENCES factory_runs(id) ON DELETE CASCADE,
+  approval_type text NOT NULL,
+  status        text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+  reason        text NOT NULL DEFAULT '',
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  approved_at   timestamptz
+);
