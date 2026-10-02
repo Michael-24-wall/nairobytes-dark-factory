@@ -8,5 +8,6 @@ dependencies = [
     "band-sdk[opencode]>=3.2.1",
     "fastapi>=0.142.2",
     "psycopg[binary]>=3.3.6",
+    "python-multipart>=0.0.20",
     "pytest>=9.1.1",
 ]

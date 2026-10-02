@@ -6,6 +6,7 @@
 - Vite 6
 - Tailwind CSS 3
 - React Router 7
+- TanStack React Query
 - lucide-react
 - JavaScript/JSX, no TypeScript
 
@@ -29,17 +30,17 @@ The frontend uses the existing `/tables`, `/reservations`, and `/reservations/{i
 ## Observed validation
 
 ```text
-npm install
-added 136 packages, audited 137 packages
+npm install @tanstack/react-query
+added 2 packages, audited 139 packages
 found 0 vulnerabilities
 
 npm run build
 vite v6.4.3 building for production...
-✓ 1600 modules transformed.
-✓ built in 2m 59s
+✓ 1645 modules transformed.
+✓ built in 5.19s
 
 .venv\Scripts\python.exe -m pytest tests -q
-46 passed, 1 warning in 20.06s
+46 passed, 1 warning in 24.39s
 ```
 
 Browser validation against the running backend and frontend observed:

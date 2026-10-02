@@ -7,7 +7,7 @@ export async function apiRequest(path, options = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...requestOptions,
-      headers: { 'Content-Type': 'application/json', ...(requestOptions.headers || {}) },
+      headers: requestOptions.body instanceof FormData ? { ...(requestOptions.headers || {}) } : { 'Content-Type': 'application/json', ...(requestOptions.headers || {}) },
       signal: controller.signal,
     })
     const body = await response.json().catch(() => ({}))

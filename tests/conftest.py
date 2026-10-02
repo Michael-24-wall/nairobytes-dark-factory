@@ -24,7 +24,7 @@ def database():
 @pytest.fixture(autouse=True)
 def clean_tables(database):
     with session() as conn:
-        conn.execute("TRUNCATE reservations, tables")
+        conn.execute("TRUNCATE reservations, tables, projects CASCADE")
     yield
 
 

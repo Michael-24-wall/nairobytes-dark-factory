@@ -11,15 +11,17 @@ from psycopg import errors
 from pydantic import BaseModel, Field
 
 from .db import session
+from .projects import router as projects_router
 
 app = FastAPI(title="Restaurant Reservation API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
+app.include_router(projects_router)
 
 
 class TableBody(BaseModel):
