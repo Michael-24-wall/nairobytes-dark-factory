@@ -15,3 +15,8 @@ export function createReservationWithStatus(payload) {
 export function getReservation(id) {
   return apiRequest(`/reservations/${encodeURIComponent(id)}`)
 }
+
+export function getAvailability(tableId, startTime, endTime) {
+  const query = `start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(endTime)}`
+  return apiRequest(`/tables/${encodeURIComponent(tableId)}/availability?${query}`)
+}

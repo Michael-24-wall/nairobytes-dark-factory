@@ -1,3 +1,9 @@
 # GitHub Integration
 
-GitHub is not configured or implemented in the current vertical slice. The UI must show `NOT CONFIGURED` until a real OAuth or GitHub App service is added. Tokens must remain backend-only and must never be placed in frontend evidence or logs.
+This file is a pointer, not a duplicate.
+
+- `github-integration.md` — what the GitHub App integration does and how a factory run reaches GitHub.
+- `github-app-setup.md` — the exact App, environment, proxy, and verification steps an administrator must follow.
+- `security.md` — the credential and authorization boundary.
+
+Implementation status: real backend integration implemented; live verification in this environment is `NOT CONFIGURED` and `NOT TESTED`, and no evidence file claims otherwise. Credentials stay backend-only and must never appear in frontend code, evidence, or logs.

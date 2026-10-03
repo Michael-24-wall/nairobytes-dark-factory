@@ -54,7 +54,11 @@ Mobile viewport check: 390x844, PASS
 - PostgreSQL status cannot be independently reported by the frontend because no safe backend health route exists.
 - The backend has no list or delete endpoint, so browser demonstration reservations remain persistent and are clearly labeled.
 - Project creation and detail retrieval were browser-verified; browser asset upload still needs a clean non-overlapping runner pass, while the backend multipart path is covered by automated tests.
-- GitHub, pull requests, external authentication, admin authorization, secrets vault, and deployment providers remain not configured.
+- GitHub App integration is implemented server-side: installation status, repository listing and organization-only creation, project mapping, real branch/commit/push, real pull request creation and read-back, and signed webhooks.
+- GitHub verification counts: `tests/test_github.py` 28 passed, `tests/test_github_api.py` 33 passed, `tests/test_github_git_flow.py` 8 passed, full suite `121 passed, 4 skipped`.
+- Live GitHub status: `NOT CONFIGURED`, because no App credentials, private key, installation ID, `.env`, or `gh` CLI exist in this environment. Live push and pull request are `NOT TESTED`; `tests/test_github_live.py` skips unless explicitly enabled.
+- GitHub routes require the server-side `FACTORY_ADMIN_TOKEN` through `X-Factory-Admin-Token`, injected by the Vite proxy rather than the browser. That shared gate is a development control, not user-level authorization.
+- External authentication, a secrets vault, and deployment providers remain not configured.
 - Live BAND orchestration is unavailable; agent views use recorded evidence.
 - The existing non-failing Starlette `httpx` deprecation warning remains.
 - A dedicated automated frontend test runner was not added; browser validation was performed through the running UI.

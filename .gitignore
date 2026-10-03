@@ -1,5 +1,11 @@
 .env
+.env.local
+.env.*.local
 agent_config.yaml
+*.pem
+*.key
+secrets/
+github-private-key.pem
 .venv/
 __pycache__/
 *.pyc

@@ -77,21 +77,24 @@ def _cleanup_stale_state(pgdata):
             pass
 
 
-def _ensure_db() -> None:
+def ensure_database(dbname: str) -> None:
+    """Create the given database (and btree_gist) on the local cluster if missing."""
     import psycopg
 
     with psycopg.connect(
         f"host={HOST} port={PORT} dbname=postgres user={USER}", autocommit=True
     ) as conn:
-        row = conn.execute(
-            "select 1 from pg_database where datname = %s", (DB,)
-        ).fetchone()
+        row = conn.execute("select 1 from pg_database where datname = %s", (dbname,)).fetchone()
         if row is None:
-            conn.execute(f'create database "{DB}"')
+            conn.execute(f'create database "{dbname}"')
     with psycopg.connect(
-        f"host={HOST} port={PORT} dbname={DB} user={USER}", autocommit=True
+        f"host={HOST} port={PORT} dbname={dbname} user={USER}", autocommit=True
     ) as conn:
         conn.execute("create extension if not exists btree_gist")
+
+
+def _ensure_db() -> None:
+    ensure_database(DB)
 
 
 def ensure_server() -> None:

@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 from .db import session
 from .projects import router as projects_router
 from .factory_api import router as factory_router
+from .github_api import router as github_router
+from .payments import router as payments_router
 
-app = FastAPI(title="Restaurant Reservation API")
+app = FastAPI(title="Nairobytes Dark Factory API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -24,6 +26,8 @@ app.add_middleware(
 )
 app.include_router(projects_router)
 app.include_router(factory_router)
+app.include_router(github_router)
+app.include_router(payments_router)
 
 
 class TableBody(BaseModel):
@@ -80,6 +84,47 @@ def create_table(body: TableBody, request: Request):
         except errors.UniqueViolation:
             return _err(409, "TABLE_EXISTS", f"table {body.table_id} already exists")
     return {"table_id": body.table_id, "capacity": body.capacity}
+
+
+AVAILABILITY_SQL = """
+SELECT reservation_id
+  FROM reservations
+ WHERE table_id = %s
+   AND status = 'active'
+   AND tstzrange(start_time, end_time, '[)') && tstzrange(%s, %s, '[)')
+ LIMIT 1
+"""
+
+
+@app.get("/tables/{table_id}/availability")
+def check_availability(table_id: str, start_time: datetime, end_time: datetime):
+    if start_time.tzinfo is None or end_time.tzinfo is None:
+        return _err(400, "NAIVE_DATETIME", "timestamps must include a UTC offset")
+    if end_time <= start_time:
+        return _err(400, "INVALID_TIME_RANGE", "end_time must be after start_time")
+
+    with session() as conn:
+        known = conn.execute(
+            "SELECT 1 FROM tables WHERE table_id = %s", (table_id,)
+        ).fetchone()
+        conflict = None
+        if known is not None:
+            conflict = conn.execute(
+                AVAILABILITY_SQL,
+                (table_id, _normalize(start_time), _normalize(end_time)),
+            ).fetchone()
+
+    table_exists = known is not None
+    return {
+        "table_id": table_id,
+        "table_exists": table_exists,
+        "start_time": _normalize(start_time).isoformat(),
+        "end_time": _normalize(end_time).isoformat(),
+        "available": table_exists and conflict is None,
+        "conflicting_reservation_id": (
+            str(conflict["reservation_id"]) if conflict is not None else None
+        ),
+    }
 
 
 INSERT_SQL = """

@@ -134,6 +134,30 @@ CREATE TABLE IF NOT EXISTS factory_artifacts (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
+-- Agent hand-off chain. Applied idempotently so existing runs keep working.
+ALTER TABLE factory_runs ADD COLUMN IF NOT EXISTS execution_mode text NOT NULL DEFAULT 'deterministic';
+ALTER TABLE factory_runs ADD COLUMN IF NOT EXISTS runtime jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE factory_tasks ADD COLUMN IF NOT EXISTS parent_task_id uuid;
+ALTER TABLE factory_tasks ADD COLUMN IF NOT EXISTS sequence integer NOT NULL DEFAULT 0;
+ALTER TABLE factory_tasks ADD COLUMN IF NOT EXISTS agent_session_id text NOT NULL DEFAULT '';
+ALTER TABLE factory_tasks ADD COLUMN IF NOT EXISTS verdict text NOT NULL DEFAULT '';
+ALTER TABLE factory_tasks ADD COLUMN IF NOT EXISTS handed_to text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS agent_role text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS task_id uuid;
+
+-- Rich agent-event stream: source/destination agent, status, artifact, lineage.
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS source_agent text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS destination_agent text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS artifact_path text NOT NULL DEFAULT '';
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS parent_event_id uuid;
+ALTER TABLE factory_events ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+CREATE INDEX IF NOT EXISTS factory_events_type_idx ON factory_events (factory_run_id, event_type, created_at);
+
+CREATE INDEX IF NOT EXISTS factory_tasks_run_sequence_idx ON factory_tasks (factory_run_id, sequence, started_at);
+CREATE INDEX IF NOT EXISTS factory_events_run_idx ON factory_events (factory_run_id, created_at);
+
 CREATE TABLE IF NOT EXISTS git_commits (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id    uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -154,3 +178,96 @@ CREATE TABLE IF NOT EXISTS approvals (
   created_at    timestamptz NOT NULL DEFAULT now(),
   approved_at   timestamptz
 );
+
+CREATE TABLE IF NOT EXISTS github_installations (
+  installation_id bigint PRIMARY KEY,
+  account_id      bigint NOT NULL,
+  account_login   text NOT NULL,
+  account_type    text NOT NULL DEFAULT 'User',
+  status          text NOT NULL DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
+  connected_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS project_github_integrations (
+  project_id       uuid PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+  installation_id  bigint NOT NULL REFERENCES github_installations(installation_id),
+  repository_id    bigint NOT NULL,
+  owner            text NOT NULL,
+  repository_name  text NOT NULL,
+  default_branch   text NOT NULL DEFAULT 'main',
+  status           text NOT NULL DEFAULT 'connected' CHECK (status IN ('connected', 'disconnected', 'error')),
+  connected_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS github_pull_requests (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id     uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  factory_run_id uuid REFERENCES factory_runs(id) ON DELETE SET NULL,
+  number         integer NOT NULL,
+  url            text NOT NULL,
+  title          text NOT NULL DEFAULT '',
+  source_branch  text NOT NULL,
+  target_branch  text NOT NULL,
+  head_sha       text NOT NULL DEFAULT '',
+  status         text NOT NULL DEFAULT 'open',
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (project_id, number)
+);
+
+ALTER TABLE github_pull_requests ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT '';
+ALTER TABLE github_pull_requests ADD COLUMN IF NOT EXISTS head_sha text NOT NULL DEFAULT '';
+
+ALTER TABLE git_commits ADD COLUMN IF NOT EXISTS base_branch text NOT NULL DEFAULT '';
+ALTER TABLE git_commits ADD COLUMN IF NOT EXISTS remote_url text;
+ALTER TABLE git_commits ADD COLUMN IF NOT EXISTS files_changed jsonb;
+ALTER TABLE git_commits ADD COLUMN IF NOT EXISTS pushed_at timestamptz;
+
+ALTER TABLE github_installations ADD COLUMN IF NOT EXISTS repository_selection text NOT NULL DEFAULT '';
+ALTER TABLE github_installations ADD COLUMN IF NOT EXISTS permissions jsonb;
+
+CREATE INDEX IF NOT EXISTS git_commits_project_idx ON git_commits(project_id);
+CREATE INDEX IF NOT EXISTS github_pull_requests_run_idx ON github_pull_requests(factory_run_id);
+
+-- ---------------------------------------------------------------------------
+-- Payment / wallet workload (ledger integrity, idempotent atomic transfers)
+-- Money is stored in minor units (e.g. cents) as integers so balances are exact.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS accounts (
+  account_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_name    text NOT NULL CHECK (length(btrim(owner_name)) > 0),
+  currency      char(3) NOT NULL DEFAULT 'USD',
+  balance_minor bigint NOT NULL DEFAULT 0 CHECK (balance_minor >= 0),
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS transfers (
+  transfer_id     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  idempotency_key text NOT NULL UNIQUE,
+  request_hash    text NOT NULL,
+  source_account  uuid NOT NULL REFERENCES accounts(account_id),
+  target_account  uuid NOT NULL REFERENCES accounts(account_id),
+  amount_minor    bigint NOT NULL CHECK (amount_minor > 0),
+  currency        char(3) NOT NULL,
+  status          text NOT NULL DEFAULT 'settled' CHECK (status IN ('settled')),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CHECK (source_account <> target_account)
+);
+
+-- Double-entry: every transfer produces exactly one debit and one credit.
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  entry_id     bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  transfer_id  uuid NOT NULL REFERENCES transfers(transfer_id) ON DELETE CASCADE,
+  account_id   uuid NOT NULL REFERENCES accounts(account_id),
+  direction    text NOT NULL CHECK (direction IN ('debit', 'credit')),
+  amount_minor bigint NOT NULL CHECK (amount_minor > 0),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (transfer_id, direction)
+);
+
+CREATE INDEX IF NOT EXISTS ledger_entries_transfer_idx ON ledger_entries(transfer_id);
+CREATE INDEX IF NOT EXISTS ledger_entries_account_idx ON ledger_entries(account_id);
+CREATE INDEX IF NOT EXISTS transfers_source_idx ON transfers(source_account);

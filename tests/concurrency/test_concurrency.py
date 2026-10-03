@@ -104,3 +104,31 @@ def test_mixed_overlapping_load_keeps_i1(live_server):
     rows = all_reservations()
     assert rows, "the race must still persist the winners"
     assert all(r["status"] == "active" for r in rows)
+
+
+HUNDRED = 100
+
+
+def test_hundred_parallel_attempts_one_slot_yields_exactly_one_winner(live_server):
+    """One table, one bookable slot, 100 simultaneous bookings -> exactly one.
+
+    This is the hackathon acceptance scenario. It is not simulated: 100 threads
+    hit a real uvicorn server through real PostgreSQL transactions and the GiST
+    exclusion constraint decides the single winner.
+    """
+    seed_table()
+    payloads = [make_payload(idempotency_key=uniq("hundred")) for _ in range(HUNDRED)]
+    assert len({p["start_time"] for p in payloads}) == 1  # identical window
+
+    results = _parallel(live_server, payloads)
+
+    statuses = [s for s, _ in results]
+    assert set(statuses) <= {201, 409}, results
+    assert statuses.count(201) == 1, f"expected exactly one winner, got {statuses.count(201)}"
+    assert statuses.count(409) == HUNDRED - 1, results
+    assert [b.get("error") for s, b in results if s == 409] == ["OVERLAP_CONFLICT"] * (HUNDRED - 1)
+
+    assert count_reservations() == 1, "100 parallel attempts must persist exactly one row"
+    assert overlapping_pair_count() == 0, "I1 must hold after the storm"
+    winners = [b for s, b in results if s == 201]
+    assert len(winners) == 1 and winners[0]["reservation_id"]

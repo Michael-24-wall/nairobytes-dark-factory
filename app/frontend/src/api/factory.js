@@ -19,3 +19,15 @@ export function getFactoryTasks(runId) {
 export function approveFactoryRun(runId, reason) {
   return apiRequest(`/api/factory/runs/${encodeURIComponent(runId)}/approve`, { method: 'POST', body: JSON.stringify({ reason }) })
 }
+
+export function getFactoryTimeline(runId) {
+  return apiRequest(`/api/factory/runs/${encodeURIComponent(runId)}/timeline`)
+}
+
+export function getFactoryRuntime() {
+  return apiRequest('/api/factory/runtime')
+}
+
+export function getFactoryMetrics() {
+  return apiRequest('/api/factory/metrics')
+}
